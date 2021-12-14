@@ -1,0 +1,349 @@
+	- Links 
+		○ Laravel 8 Image File Upload With Inertia Js Vue 3 Example (larainfo.com)
+		○ https://remotestack.io/how-to-upload-file-in-laravel-with-validation/
+		○ I have saved in my private computer as document 
+		○ https://www.digitalocean.com/community/tutorials/understanding-and-working-with-files-in-laravel
+		
+		
+	- Requirements
+		○ Laravel installed
+		○ inertia installed
+		○ jetstream or breeze installed
+	- Method 
+		○ Step1 
+		Create symbolic link for storage 
+			§ php artisan storage:link 
+		
+		○ Step1 
+			§ Write Create  method input form route 
+			
+			    /**
+			     * Show the form for creating a new resource.
+			     *
+			     * @return \Illuminate\Http\Response
+			     */
+			    public function create()
+			    {
+			        //
+			        return Inertia::render('Purchases/Create');
+			    }
+			§ Write form create route 
+			 Route::get('/purchase/create', 
+				[PurchaseController::class, 'create'])
+				->name('purchase.create');
+			
+			
+			
+		○ Step2 
+			§ Link : 
+
+			§ Create inertia form form to upload file 
+			
+			  <form @submit.prevent="submit" class="mb-2">
+			                 <h1 class="text-2xl font-bold text-gray-900 p-2 mb-4 text-center"> Purchase Entry </h1>
+			                   <!-- anzahlung_rechnung  -->     
+			                <div class="flex py-2 mb-1">
+			                                    <label class="text-gray-900 font-semibold block my-3 text-lg  w-1/3" 
+			                    for="anzahlung_rechnung">Anzahlung Rechnung</label>
+			                <input class=" w-2/3 bg-gray-100 px-4 py-2 rounded-lg focus:outline-none  text-center
+			                            transition
+			                            ease-in-out
+			                            m-0" 
+			                        type="file"
+			                        @input ="form.anzahlung_rechnung=$event.target.files[0]" 
+			                        step="any"
+			                        name="anzahlung_rechnung" 
+			                        id="anzahlung_rechnung" 
+			                        placeholder="Anzahlung Rechnung " /> 
+			       
+			                 
+			                
+			                </div>
+			                              <!-- rz_rechnung  -->
+			     
+			                <div class="flex py-2 mb-1">
+			                 <label class="text-gray-900 font-semibold block my-3 text-lg  w-1/3" 
+			                    for="rz_rechnung">RZ Rechnung</label>
+			                   <input class=" w-2/3 bg-gray-100 px-4 py-2 rounded-lg focus:outline-none  text-center
+			                            transition
+			                            ease-in-out
+			                            m-0" 
+			                        type="file"
+			                        @input ="form.rz_rechnung=$event.target.files[0]" 
+			                        step="any"
+			                        name="rz_rechnung" 
+			                        id="rz_rechnung" 
+			                        placeholder="RZ Rechnung " /> 
+			                     <!-- progress bar  -->
+			                  
+			                
+			                </div>
+			  
+			<!-- Speichern  -->
+			 <button type="submit" 
+			 class="w-full mt-6 bg-indigo-600 rounded-lg px-4 py-2 text-lg text-white 
+				tracking-wide font-semibold font-sans mb-4">Speichern
+				</button>
+			                                
+			 </form>
+			
+			<script>
+			import { reactive } from 'vue'
+			import { Inertia } from '@inertiajs/inertia'
+			export default {
+			   setup () {
+			    const form = reactive({
+			      orderId: null,
+			      anzahlung_rechnung:null,
+				 rz_rechnung :null,
+			
+			    })
+			    function submit() {
+			      Inertia.post('/purchases', form)
+			    }
+			    return { form, submit }
+			  },
+			}
+			</script>
+			
+			§ For further study 
+				□ https://inertiajs.com/file-uploads
+			
+		○ Step3 Create Route for post action 
+			§ Route::post('/purchases', [PurchaseController::class, 'store'])->name('purchase.store');
+		○ Step4 
+		save the data in PurchaseController 
+			§ Create save method in PurchaseController 
+			
+			  /***
+			     * 
+			     * Save files bzw rechnungen 
+			     * @params type: Illuminate\Http\UploadedFile $file 
+			     * @returen : String 
+			     * 
+			     */
+			    public function save_and_get_filename($file)
+			    {
+			        
+			         /**
+			          **
+			          * chek if file is empty 
+			          * inputtype: $file has a Type :  Illuminate\Http\UploadedFile
+			          *  
+			          */
+			
+			         $target_dir = "rechnungen";
+			         $date = new \DateTime();
+			        
+			        /**
+			         * 
+			         * basename (/file_name.ext)  gives file_name.ext . 
+			         * 
+			         */
+			            $target_filename = $date->getTimestamp()."_". basename($file->getClientOriginalName());
+			            $target_filename = preg_replace('/\s+/', '_', $target_filename);
+			       
+			        /**
+			        * storeAs function has three parameters
+			        * Store the uploaded file on a filesystem disk with public visibility.
+			        *
+			        * @param  string  basic_dir
+			        * @param  string  file_path 
+			        * @param  array|string  $options
+			        * @return string|false
+			        */
+			        
+			        $file_path = $file->storeAs($target_dir, $target_filename, 'public');
+			       
+			        return $file_path;
+			    }
+			§  Create Store method 
+				
+				    /**
+				     * Store a newly created resource in storage.
+				     *
+				     * @param  \Illuminate\Http\Request  $request
+				     * @return \Illuminate\Http\Response
+				     */
+				    public function store(Request $request)
+				    {
+				                $purchase                  = new Purchase ();
+				         $purchase->orderId         = $request['orderId'];
+				         $purchase->manufacturer    = $request['manufacturer'];
+				         $purchase->billNo          = $request['billNo'];
+				                
+				         $az_file           =$request['anzahlung_rechnung'];
+				        $az_rechnung_name  ="";
+				        //save the az rechnung 
+				        if($az_file){
+				            $az_rechnung_name = $this->save_and_get_filename($az_file);
+				            $purchase->anzahlung_rechnung =$az_rechnung_name;
+				        }
+				        //save oz rechnung 
+				        $rz_file = $request['rz_rechnung'];
+				        $rz_rechnung_name  ="";
+				        if($rz_file){
+				            $rz_rechnung_name = $this->save_and_get_filename($rz_file);
+				            $purchase->rz_rechnung =$rz_rechnung_name;
+				        }
+				         $purchase->Save();
+				        // dd($purchase);
+				        // return Redirect::route('image.index');
+				        return Redirect::route('purchase.index');
+				        
+				    }
+				
+			
+		○ Step 5
+			§ Write PurchaseController@Index method 
+
+			
+			 /**
+			     * Display a listing of the resource.
+			     *
+			     * @return \Illuminate\Http\Response
+			     */
+			
+				use Inertia\Inertia;
+				use Illuminate\Support\Facades\Redirect;
+				// use App\Http\Requests\StoreFile;
+				use Illuminate\Support\Facades\Log;
+				use Illuminate\Support\Facades\DB;
+				use ProtoneMedia\LaravelQueryBuilderInertiaJs\InertiaTable;
+				// use Spatie\QueryBuilder\AllowedFilter; 
+				use Spatie\QueryBuilder\AllowedFilter;
+				use Spatie\QueryBuilder\QueryBuilder;
+			
+			    public function index()
+			    {
+			        //
+			        // dd(Purchase::all());
+			        /***
+			        * 
+			        *Global search 
+			        */
+			        $globalSearch = AllowedFilter::callback('global', function ($query, $value) {
+			            $query->where(function ($query) use ($value) {
+			                $query->where('orderId', 'LIKE', "%{$value}%");
+			                // $query->where('itemId', "{$value}");
+			                // ->orWhere('variationId', 'LIKE', "%{$value}%");
+			                
+			            });
+			        });
+			         /***
+			        *
+			        *Get Purchases from variation table 
+			        *
+			        **/
+			        $purchases = QueryBuilder::for(Purchase::class)
+			        ->defaultSort('id')
+			        ->allowedSorts(['orderId', 'manufacturer','billNo','anzahlung_betrag_usd','rz_betrag_usd' ])
+			        ->allowedFilters(['orderId','manufacturer', 'billNo', 'anzahlung_betrag_usd', 'rz_betrag_usd',  $globalSearch])
+			        ->paginate(50) 
+			        ->withQueryString();
+			       return Inertia::render('Purchases/Index', [
+			            'purchases'=> $purchases
+			         ])->table(function (InertiaTable $table) {
+			             $table->addSearchRows([                
+			                 'orderId'                => 'OrderId',
+			                 'manufacturer'           => 'Manufacturer',
+			                 'billNo'                 => 'Bill No',
+			                 'anzahlung_betrag_usd'   => 'AZ Betrag',
+			                 'rz_betrag_usd'          => 'RZ Betrag',
+			                 // 'itemId'   =>  'Item Id',
+			             ])->addFilter('mainWarehouseId', 'Warehouse', [
+			                 '25' => 'Keramag',
+			             ])->addColumns([
+			                 'barbeiten'             => 'Barbeiten',
+			                 'orderId'               => 'orderId',
+			                 'manufacturer'          =>'Manufacturer',
+			                 'billNo'                =>'Rechnungsnummer',
+			                 
+			             ]);
+			         });    
+			
+			    //end 
+			    } //end of index function 
+		○ Create Inex.vue file in Pages/Purchases/Index.vue 
+			
+			<template >
+			     <bernstein-layout>
+			         <!-- {{purchases}} -->
+			    <div class="py-2 flex flex-row justify-between "> 
+			      <Link  v-if="purchases.prev_page_url" class="m-2 px-2 py-2 bg-gray-300 rounded" :href="purchases.prev_page_url" >Previous Page </Link> 
+			      <Link  v-if="purchases.next_page_url" class="m-2 px-2 py-2 bg-gray-300 rounded" :href="purchases.next_page_url">Next Page </Link> 
+			      </div>
+			       <!-- Here starts the table  -->
+			           <!-- {{variations.next_page_url}} -->
+			    <div class=" flex flex-col  overscroll-x-contain ">
+			      <!-- <div class="flex-grow overflow-auto"> -->
+			        <Table
+			        :filters="queryBuilderProps.filters"
+			        :search="queryBuilderProps.search"
+			        :columns="queryBuilderProps.columns"
+			        :on-update="setQueryBuilder"
+			        :meta="purchases"  
+			        class="relative w-full border"
+			        >
+			          <!-- header  -->
+			       <template #head >        
+			            <tr class="py-2 border-b border-gray-400 bg-gray-300 text-gray-900 font-bold sticky ">
+			                  <th class="sticky top-0 border-r border-green-200" v-show="showColumn('orderId')" @click.prevent="sortBy('orderId')">Order Id</th>
+			                <!-- anzahlung_rechnung -->
+			                <th class="sticky top-0 border-r border-green-200"  v-show="showColumn('anzahlung_rechnung')">Anzahlung Rechnung</th>      
+			        
+			               <!-- rz_rechnung -->
+			               <th class="sticky top-0 border-r border-green-200" v-show="showColumn('rz_rechnung')" >RZ Rechnung </th>
+			         </tr>
+			            <!-- <tr><th class="fixed top-0"> test</th> </tr>      -->
+			        </template> 
+			         <!-- here  starts the body of the table  -->
+			        <template #body>
+			            <tr v-for="(purchase, purchaseIndx) in purchases.data" :key="purchaseIndx"
+			                :class="[{'bg-gray-100':purchaseIndx%2==0}, p-1]" 
+			            >
+			        
+			                       
+			                <td class="border-r border-green-200" v-show="showColumn('orderId')">{{ purchase.orderId}}</td>
+			                   <!-- anzahlung_rechnung -->
+			                  <td class="border-r border-green-200" v-show="showColumn('anzahlung_rechnung')"> 
+			                    <a v-if ="purchase.anzahlung_rechnung" 
+			                        :href="getUrl()+purchase.anzahlung_rechnung" >AZ Rechnung </a> 
+			                </td>
+			                    <!-- rz_rechnung -->
+			                <td class="border-r border-green-200" v-show="showColumn('anzahlung_rechnung')"> 
+			                    <a v-if ="purchase.rz_rechnung" 
+			                        :href="getUrl()+purchase.rz_rechnung" >RZ Rechnung </a> 
+			                </td>
+			             </tr>
+			    </template>
+			         <!-- end of table  -->
+			        </Table>
+			    </div>
+			    </bernstein-layout> 
+			</template>
+			<script>
+			import { Head, Link } from '@inertiajs/inertia-vue3';
+			import BernsteinLayout from '@/Layouts/BernsteinLayout.vue'
+			import { InteractsWithQueryBuilder, Tailwind2 } from '@protonemedia/inertiajs-tables-laravel-query-builder';
+			import {
+			  TransitionRoot,
+			  TransitionChild,
+			  Dialog,
+			  DialogOverlay,
+			  DialogTitle,
+			} from '@headlessui/vue'
+			import { ref } from 'vue'
+			export default {
+			   mixins: [InteractsWithQueryBuilder],
+			    props:{
+			     purchases: Array
+			  },
+			    methods:{
+			          getUrl() {
+			            return "/storage/";
+			        },
+			    }
+			}
+			</script>
+			
